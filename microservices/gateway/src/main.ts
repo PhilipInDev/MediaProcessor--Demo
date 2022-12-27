@@ -1,7 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { Transport } from '@nestjs/microservices';
 import { MediaModule } from './api';
-import {Transport} from '@nestjs/microservices';
+import {
+  RABBIT_MQ_HOST,
+  RABBIT_MQ_PORT,
+  RABBIT_MQ_QUEUE_NAME,
+  API_PORT,
+} from '../config';
 
 async function bootstrap() {
   const app = await NestFactory.create(MediaModule);
@@ -9,8 +15,8 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
-      urls: ['amqp://localhost:5000'],
-      queue: 'media:process',
+      urls: [`amqp://${RABBIT_MQ_HOST}:${RABBIT_MQ_PORT}`],
+      queue: RABBIT_MQ_QUEUE_NAME,
       queueOptions: {
         durable: false
       },
@@ -18,6 +24,6 @@ async function bootstrap() {
   })
 
   app.useGlobalPipes(new ValidationPipe());
-  await app.listen(3000);
+  await app.listen(API_PORT);
 }
 bootstrap();
