@@ -1,11 +1,16 @@
 FROM node:18.12.1
 
-WORKDIR /usr/src/gateway
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+
+RUN yarn
 
 COPY . .
 
-RUN yarn && yarn build
+RUN yarn build
 
 EXPOSE 3000
 
 CMD [ "yarn", "start" ]
+
