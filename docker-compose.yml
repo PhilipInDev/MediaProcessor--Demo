@@ -63,8 +63,10 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=master123
-      - POSTGRES_DB=postgres
+      - POSTGRES_PASSWORD=postgres123
+      - POSTGRES_DB=master
+      - POSTGRES_INITDB_ARGS="--auth-host=scram-sha-256"
+      - DEBUG=true
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
