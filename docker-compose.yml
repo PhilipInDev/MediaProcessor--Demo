@@ -1,0 +1,103 @@
+version: "3"
+
+services:
+  gateway:
+    build:
+      context: ./microservices/gateway
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    hostname: gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./microservices/gateway/.env
+    networks:
+      - backend
+    depends_on:
+      - rabbitmq
+      - database
+    links:
+      - rabbitmq
+      - database
+    volumes:
+      - ./microservices/gateway:/var/www/gateway
+      - /var/www/gateway/node_modules
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: gateway
+  media-processor:
+    build:
+      context: ./microservices/media-processor
+      dockerfile: Dockerfile.dev
+    hostname: media-processor
+    ports:
+      - "9001:9001"
+    env_file:
+      - ./microservices/media-processor/.env
+    networks:
+      - backend
+    depends_on:
+      - rabbitmq
+      - database
+    links:
+      - rabbitmq
+      - database
+    volumes:
+      - ./microservices/media-processor:/var/www/media-processor
+      - /var/www/media-processor/node_modules
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: media-processor
+  database:
+    image: postgres:latest
+    restart: on-failure
+    container_name: postgres
+    hostname: database
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=master123
+      - POSTGRES_DB=postgres
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: database
+  rabbitmq:
+    image: rabbitmq:3-management
+    restart: on-failure
+    container_name: rabbitmq
+    hostname: rabbitmq
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: rabbitmq
+networks:
+  backend:
+    driver: bridge
+volumes:
+  pg_data:
+    driver: local
+  rabbit_data:
+    driver: local
