@@ -5,6 +5,8 @@ import { MediaModule } from './api';
 import {
   RABBIT_MQ_HOST,
   RABBIT_MQ_PORT,
+  RABBIT_MQ_PASS,
+  RABBIT_MQ_USER,
   RABBIT_MQ_QUEUE_NAME,
   API_PORT,
 } from '../config';
@@ -15,7 +17,7 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.RMQ,
     options: {
-      urls: [`amqp://${RABBIT_MQ_HOST}:${RABBIT_MQ_PORT}`],
+      urls: [`amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASS}@${RABBIT_MQ_HOST}:${RABBIT_MQ_PORT}`],
       queue: RABBIT_MQ_QUEUE_NAME,
       queueOptions: {
         durable: false

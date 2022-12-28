@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 class MediaService {
-	processFile(): string {
+	processFile() {
 		return 'Hello World!';
 	}
 }
