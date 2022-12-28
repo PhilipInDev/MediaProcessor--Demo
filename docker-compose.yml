@@ -1,16 +1,16 @@
 version: "3"
 
 services:
-  gateway:
+  api-gateway:
     build:
-      context: ./microservices/gateway
+      context: microservices/api-gateway
       dockerfile: Dockerfile.dev
     restart: unless-stopped
-    hostname: gateway
+    hostname: api-gateway
     ports:
-      - "3000:3000"
+      - "5000:5000"
     env_file:
-      - ./microservices/gateway/.env
+      - microservices/api-gateway/.env
     networks:
       - backend
     depends_on:
@@ -20,21 +20,48 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/gateway:/var/www/gateway
-      - /var/www/gateway/node_modules
+      - ./microservices/api-gateway:/var/www/api-gateway
+      - /var/www/api-gateway/node_modules
     logging:
       driver: fluentd
       options:
         fluentd-async: "true"
         fluentd-address: 192.168.29.38:24224
-        tag: gateway
+        tag: api-gateway
+  media-rest:
+    build:
+      context: microservices/media-rest
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    hostname: media-rest
+    ports:
+      - "9001:9001"
+    env_file:
+      - microservices/media-rest/.env
+    networks:
+      - backend
+    depends_on:
+      - rabbitmq
+      - database
+    links:
+      - rabbitmq
+      - database
+    volumes:
+      - ./microservices/media-rest:/var/www/media-rest
+      - /var/www/media-rest/node_modules
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: media-rest
   media-processor:
     build:
       context: ./microservices/media-processor
       dockerfile: Dockerfile.dev
     hostname: media-processor
     ports:
-      - "9001:9001"
+      - "9002:9002"
     env_file:
       - ./microservices/media-processor/.env
     networks:
