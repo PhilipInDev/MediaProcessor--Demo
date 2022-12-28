@@ -1,8 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MediaController } from './media.controller';
-import { MediaService } from './media.service';
 import { ArgumentMetadata, ValidationPipe } from '@nestjs/common';
 import { ProcessMediaDto } from './media.dto';
+import {ClientProxyFactory, Transport} from '@nestjs/microservices';
+import {
+	RABBIT_MQ_HOST,
+	RABBIT_MQ_PASS,
+	RABBIT_MQ_PORT, RABBIT_MQ_QUEUE_NAME,
+	RABBIT_MQ_USER
+} from '../../../config';
 
 describe('MediaController', () => {
 	let mediaController: MediaController;
@@ -10,7 +16,23 @@ describe('MediaController', () => {
 	beforeEach(async () => {
 		const app: TestingModule = await Test.createTestingModule({
 			controllers: [MediaController],
-			providers: [MediaService],
+			providers: [
+				{
+					provide: 'RABBIT_MQ_SERVICE',
+					useFactory: () => {
+						return ClientProxyFactory.create({
+							transport: Transport.RMQ,
+							options: {
+								urls: [`amqp://${RABBIT_MQ_USER}:${RABBIT_MQ_PASS}@${RABBIT_MQ_HOST}:${RABBIT_MQ_PORT}`],
+								queue: RABBIT_MQ_QUEUE_NAME,
+								queueOptions: {
+									durable: false,
+								},
+							},
+						})
+					},
+				}
+			],
 		}).compile();
 
 		mediaController = app.get<MediaController>(MediaController);

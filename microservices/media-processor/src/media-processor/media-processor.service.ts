@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 class MediaProcessorService {
 	processFile(): string {
-		return 'Hello World!';
+		throw new RpcException('Exception from media-processor service');
 	}
 }
 
