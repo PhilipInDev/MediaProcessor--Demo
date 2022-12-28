@@ -24,6 +24,7 @@ async function bootstrap() {
   })
 
   app.useGlobalPipes(new ValidationPipe());
+  app.setGlobalPrefix('api')
   await app.listen(API_PORT);
 }
 bootstrap();

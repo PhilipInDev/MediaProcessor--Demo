@@ -10,8 +10,6 @@ COPY . .
 
 RUN yarn build
 
-RUN chmod +x ./entry-point.dev.sh
+EXPOSE 9001
 
-EXPOSE 3000
-
-CMD [ "./entry-point.dev.sh" ]
+CMD [ "yarn", "start" ]
