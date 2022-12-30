@@ -20,7 +20,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/api-gateway:/var/www/api-gateway
+      - ./microservices/api-gateway:/usr/src/app
       - /var/www/api-gateway/node_modules
     logging:
       driver: fluentd
@@ -47,7 +47,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/media-rest:/var/www/media-rest
+      - ./microservices/media-rest:/usr/src/app
       - /var/www/media-rest/node_modules
     logging:
       driver: fluentd
@@ -73,7 +73,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/media-processor:/var/www/media-processor
+      - ./microservices/media-processor:/usr/src/app
       - /var/www/media-processor/node_modules
     logging:
       driver: fluentd
