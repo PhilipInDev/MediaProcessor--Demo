@@ -1,0 +1,68 @@
+{
+  "queues": [
+    {
+      "name": "media:process",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "media:aggregate",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "media:process:error",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "exchange1",
+      "vhost": "/",
+      "type": "direct",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "exchange1",
+      "vhost": "/",
+      "destination": "media:process",
+      "destination_type": "queue",
+      "routing_key": "media:process",
+      "arguments": {}
+    },
+    {
+      "source": "exchange1",
+      "vhost": "/",
+      "destination": "media:process:error",
+      "destination_type": "queue",
+      "routing_key": "media:process:error",
+      "arguments": {}
+    },
+    {
+      "source": "exchange1",
+      "vhost": "/",
+      "destination": "media:aggregate",
+      "destination_type": "queue",
+      "routing_key": "media:aggregate",
+      "arguments": {}
+    }
+  ]
+}
