@@ -47,7 +47,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/media-rest:/usr/src/app
+      - ./microservices/media-rest:/var/www/media-rest
       - /var/www/media-rest/node_modules
     logging:
       driver: fluentd
@@ -111,6 +111,7 @@ services:
     hostname: rabbitmq
     volumes:
       - rabbit_data:/var/lib/rabbitmq
+      - ./init/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     ports:
       - "5672:5672"
       - "15672:15672"
