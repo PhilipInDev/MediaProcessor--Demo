@@ -1,21 +1,14 @@
-const supportedImageTypes = [
-	'image/gif',
-	'image/jpeg',
-	'image/png',
-	'image/webp',
-]
+import {
+	SUPPORTED_AUDIO_EXTENSIONS,
+	SUPPORTED_IMAGE_EXTENSIONS,
+	SUPPORTED_VIDEO_EXTENSIONS
+} from '../../config';
 
-const supportedVideoTypes = [
-	'video/mpeg',
-	'video/mp4',
-	'video/webm',
-]
+const supportedImageTypes = JSON.parse(SUPPORTED_IMAGE_EXTENSIONS) as string[];
 
-const supportedAudioTypes = [
-	'audio/mpeg',
-	'audio/mp4',
-	'audio/webm',
-]
+const supportedVideoTypes = JSON.parse(SUPPORTED_VIDEO_EXTENSIONS) as string[];
+
+const supportedAudioTypes = JSON.parse(SUPPORTED_AUDIO_EXTENSIONS) as string[];
 
 const supportedMediaTypesConfig = supportedImageTypes
 	.concat(supportedVideoTypes, supportedAudioTypes);
