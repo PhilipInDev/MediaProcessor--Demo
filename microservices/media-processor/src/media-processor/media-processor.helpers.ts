@@ -1,7 +1,8 @@
 import { path as ffprobePath } from '@ffprobe-installer/ffprobe';
 const ffprobe = require('ffprobe');
-import { join } from 'path';
-import { createWriteStream, writeFileSync } from 'fs';
+import { FFProbeResult } from 'ffprobe';
+import { join, resolve } from 'path';
+import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { WritableStream } from 'stream/web';
 import { FileType } from './file-types.enum';
 
@@ -13,7 +14,7 @@ class MPHelpers {
 		if (contentType.includes(FileType.IMAGE)) return FileType.IMAGE;
 	}
 
-	static getFileName(disposition: string) {
+	static getOriginalFileName(disposition: string) {
 		const utf8FilenameRegex = /filename\*=UTF-8''([\w%\-\.]+)(?:; ?|$)/i;
 		const asciiFilenameRegex = /^filename=(["']?)(.*?[^\\])\1(?:; ?|$)/i;
 
@@ -35,8 +36,8 @@ class MPHelpers {
 		return fileName;
 	}
 
-	static async getFileMetadata(filePath: string) {
-		return ffprobe(filePath, { path: ffprobePath })
+	static async getFileMetadata(filePath: string): Promise<FFProbeResult> {
+		return ffprobe(filePath, { path: ffprobePath });
 	}
 
 	static getFileMetadataByHttpHeaders(headers: Headers) {
@@ -50,7 +51,7 @@ class MPHelpers {
 
 	static async createFile({ body, headers }: Response, dirPath: string) {
 		const disposition = headers.get('content-disposition');
-		const fileName = (disposition && MPHelpers.getFileName(disposition)) || 'default_file_name';
+		const fileName = (disposition && MPHelpers.getOriginalFileName(disposition)) || 'default_file_name';
 		const filePath = join(dirPath, fileName);
 
 		writeFileSync(filePath, '');
@@ -63,6 +64,30 @@ class MPHelpers {
 		await body.pipeTo(writableStream);
 
 		return { filePath }
+	}
+
+	static createUniqueDir(
+		path: string, // where dir should be created
+	) {
+		const rootDirPath = resolve(join(path, 'files'));
+		if (!existsSync(rootDirPath)) {
+			mkdirSync(rootDirPath);
+		}
+
+		let pathToDirectory: string | null = null;
+		let counter = 0;
+
+		while (!pathToDirectory) {
+			const dirPath = resolve(join(path, 'files', `file-${counter}`));
+			if (!existsSync(dirPath)) {
+				mkdirSync(dirPath);
+				pathToDirectory = dirPath;
+			}
+
+			counter++;
+		}
+
+		return pathToDirectory;
 	}
 
 	static bytesToMbs (sizeInBytes: number) {
