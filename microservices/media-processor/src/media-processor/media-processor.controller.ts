@@ -1,16 +1,35 @@
-import { Controller } from '@nestjs/common';
-import {MessagePattern, Payload} from '@nestjs/microservices';
+import { Controller, HttpStatus } from '@nestjs/common';
+import {
+	MessageHandlerErrorBehavior,
+	RabbitRPC,
+} from '@golevelup/nestjs-rabbitmq';
 import { MediaProcessorService } from './media-processor.service';
-import { RABBIT_MQ_QUEUE_NAME } from '../../config';
 
 @Controller()
 class MediaProcessorController {
-	constructor(private readonly mediaProcessorService: MediaProcessorService) {}
+	constructor(
+		private readonly mediaProcessorService: MediaProcessorService,
+	) {}
 
-	@MessagePattern(RABBIT_MQ_QUEUE_NAME)
-	processFile(@Payload() data: string) {
-		console.log('QUEQUE QUE QUE  >>>>>>', data)
-		return this.mediaProcessorService.processFile();
+	@RabbitRPC({
+		exchange: 'exchange1',
+		routingKey: 'media:process',
+		queue: 'media:process',
+		errorBehavior: MessageHandlerErrorBehavior.ACK,
+	})
+	async processFile(data: { fileUrl: string }) {
+		try {
+			await this.mediaProcessorService.scanContentForExceptions(data.fileUrl);
+		} catch (e) {
+			return {
+				error: e?.message,
+				statusCode: HttpStatus.BAD_REQUEST,
+			}
+		}
+
+		this.mediaProcessorService.processFile(data);
+
+		return null;
 	}
 }
 

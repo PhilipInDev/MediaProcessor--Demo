@@ -20,7 +20,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/api-gateway:/var/www/api-gateway
+      - ./microservices/api-gateway:/usr/src/app
       - /var/www/api-gateway/node_modules
     logging:
       driver: fluentd
@@ -73,7 +73,7 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/media-processor:/var/www/media-processor
+      - ./microservices/media-processor:/usr/src/app
       - /var/www/media-processor/node_modules
     logging:
       driver: fluentd
@@ -111,6 +111,7 @@ services:
     hostname: rabbitmq
     volumes:
       - rabbit_data:/var/lib/rabbitmq
+      - ./init/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
     ports:
       - "5672:5672"
       - "15672:15672"
