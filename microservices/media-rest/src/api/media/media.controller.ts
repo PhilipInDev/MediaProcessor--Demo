@@ -1,31 +1,48 @@
 import {
 	Post,
 	Body,
-	Inject,
 	HttpCode,
 	Controller,
 	UseFilters,
-	UseInterceptors
+	UseInterceptors, HttpException
 } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
+import {
+	RabbitSubscribe
+} from '@golevelup/nestjs-rabbitmq';
 import { FormatResponseInterceptor } from '../../interceptors';
 import { ProcessMediaDto } from './media.dto';
 import { AppRoutes } from '../../common';
-import { RABBIT_MQ_QUEUE_NAME } from '../../../config';
 import { ExceptionFilter } from '../../classes';
+import { MediaService } from './media.service';
 
 @Controller(AppRoutes.MEDIA)
 @UseInterceptors(FormatResponseInterceptor)
 class MediaController {
 	constructor(
-		@Inject('RABBIT_MQ_SERVICE') private rabbitMqService: ClientProxy,
+		private mediaService: MediaService,
 	) {}
 
 	@Post('process')
 	@HttpCode(202)
 	@UseFilters(new ExceptionFilter())
-	processFile(@Body() data: ProcessMediaDto) {
-		return this.rabbitMqService.send(RABBIT_MQ_QUEUE_NAME, data);
+	async processFile(@Body() data: ProcessMediaDto) {
+		const result = await this.mediaService.processFile(data);
+
+		if (result?.error) {
+			throw new HttpException(result.error, result.statusCode);
+		}
+
+		return result;
+	}
+
+	@RabbitSubscribe({
+		exchange: 'exchange1',
+		queue: 'media:aggregate',
+		routingKey: 'media:aggregate',
+	})
+	async aggregateFileMetadata(data: object) {
+		console.log('data', data)
+		await this.mediaService.aggregateFileMetadata(data);
 	}
 }
 
