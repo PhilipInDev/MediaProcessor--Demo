@@ -1,3 +1,1 @@
-export * from './database.module';
-export * from './database.providers';
-export * from './file-metadata';
+export * from './models';

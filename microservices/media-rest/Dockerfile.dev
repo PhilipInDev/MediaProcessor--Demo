@@ -14,4 +14,4 @@ RUN chmod +x ./entry-point.dev.sh
 
 EXPOSE 9001
 
-CMD [ "./entry-point.dev.sh" ]
+CMD [ "yarn", "start:dev" ]
