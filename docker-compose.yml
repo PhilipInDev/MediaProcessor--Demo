@@ -30,14 +30,14 @@ services:
         tag: api-gateway
   media-rest:
     build:
-      context: microservices/media-rest
+      context: ./microservices/media-rest
       dockerfile: Dockerfile.dev
     restart: unless-stopped
     hostname: media-rest
     ports:
       - "9001:9001"
     env_file:
-      - microservices/media-rest/.env
+      - ./microservices/media-rest/.env
     networks:
       - backend
     depends_on:
@@ -47,8 +47,8 @@ services:
       - rabbitmq
       - database
     volumes:
-      - ./microservices/media-rest:/var/www/media-rest
-      - /var/www/media-rest/node_modules
+      - ./microservices/media-rest:/usr/src/app
+      - /usr/src/app/node_modules
     logging:
       driver: fluentd
       options:
@@ -74,7 +74,7 @@ services:
       - database
     volumes:
       - ./microservices/media-processor:/usr/src/app
-      - /var/www/media-processor/node_modules
+      - ./microservices/media-processor/node_modules:/usr/src/app/node_modules
     logging:
       driver: fluentd
       options:
