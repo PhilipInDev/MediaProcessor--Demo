@@ -3,7 +3,7 @@ const {
   Model
 } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  class FileMetadata extends Model {
+  class file_general extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -13,15 +13,14 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  FileMetadata.init({
+  file_general.init({
     name: DataTypes.STRING,
-    size_kb: DataTypes.INTEGER,
+    size_bytes: DataTypes.INTEGER,
     extension: DataTypes.STRING,
-    length_ms: DataTypes.INTEGER,
-    resolution: DataTypes.INTEGER
+    type_readable: DataTypes.STRING
   }, {
     sequelize,
-    modelName: 'FileMetadata',
+    modelName: 'file_general',
   });
-  return FileMetadata;
+  return file_general;
 };

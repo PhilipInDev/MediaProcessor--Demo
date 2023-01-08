@@ -14,6 +14,10 @@ class MPHelpers {
 		if (contentType.includes(FileType.IMAGE)) return FileType.IMAGE;
 	}
 
+	static getFileExtension(contentType: string) {
+		return contentType.split('/')[1];
+	}
+
 	static getOriginalFileName(disposition: string) {
 		const utf8FilenameRegex = /filename\*=UTF-8''([\w%\-\.]+)(?:; ?|$)/i;
 		const asciiFilenameRegex = /^filename=(["']?)(.*?[^\\])\1(?:; ?|$)/i;
@@ -46,7 +50,7 @@ class MPHelpers {
 		const fileType = MPHelpers.getFileType(contentType);
 		const contentSizeMb = MPHelpers.bytesToMbs(Number(contentSizeBytes));
 
-		return { contentType, contentSizeMb, fileType };
+		return { contentType, contentSizeMb, contentSizeBytes, fileType };
 	}
 
 	static async createFile({ body, headers }: Response, dirPath: string) {
@@ -63,7 +67,7 @@ class MPHelpers {
 		});
 		await body.pipeTo(writableStream);
 
-		return { filePath }
+		return { filePath, fileName };
 	}
 
 	static createUniqueDir(

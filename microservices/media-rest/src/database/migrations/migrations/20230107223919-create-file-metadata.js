@@ -2,12 +2,15 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('FileMetadata', {
+    await queryInterface.createTable('file_metadata', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
+      },
+      file_id: {
+        type: Sequelize.STRING
       },
       name: {
         type: Sequelize.STRING
@@ -18,11 +21,32 @@ module.exports = {
       extension: {
         type: Sequelize.STRING
       },
-      length_ms: {
+      duration_ms: {
         type: Sequelize.INTEGER
       },
       resolution: {
         type: Sequelize.INTEGER
+      },
+      width: {
+        type: Sequelize.INTEGER
+      },
+      height: {
+        type: Sequelize.INTEGER
+      },
+      type_readable: {
+        type: Sequelize.STRING
+      },
+      codec_name: {
+        type: Sequelize.STRING
+      },
+      codec_long_name: {
+        type: Sequelize.STRING
+      },
+      codec_type: {
+        type: Sequelize.STRING
+      },
+      aspect_ratio: {
+        type: Sequelize.STRING
       },
       createdAt: {
         allowNull: false,
@@ -32,9 +56,9 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    }, );
+    });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('FileMetadata');
+    await queryInterface.dropTable('file_metadata');
   }
 };

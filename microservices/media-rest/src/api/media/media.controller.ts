@@ -4,14 +4,16 @@ import {
 	HttpCode,
 	Controller,
 	UseFilters,
-	UseInterceptors, HttpException
+	UseInterceptors,
+	HttpException,
+	Get,
 } from '@nestjs/common';
 import {
 	RabbitSubscribe
 } from '@golevelup/nestjs-rabbitmq';
 import { FormatResponseInterceptor } from '../../interceptors';
 import { ProcessMediaDto } from './media.dto';
-import { AppRoutes } from '../../common';
+import { AppRoutes, FileMetadata } from '../../common';
 import { ExceptionFilter } from '../../classes';
 import { MediaService } from './media.service';
 
@@ -35,13 +37,18 @@ class MediaController {
 		return result;
 	}
 
+	@Get('aggregated/stats')
+	@UseFilters(new ExceptionFilter())
+	async getAggregatedStats() {
+		return this.mediaService.getAggregatedFilesStats();
+	}
+
 	@RabbitSubscribe({
 		exchange: 'exchange1',
 		queue: 'media:aggregate',
 		routingKey: 'media:aggregate',
 	})
-	async aggregateFileMetadata(data: object) {
-		console.log('data', data)
+	async aggregateFileMetadata(data: FileMetadata) {
 		await this.mediaService.aggregateFileMetadata(data);
 	}
 }
