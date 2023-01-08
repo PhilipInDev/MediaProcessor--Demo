@@ -48,16 +48,32 @@ class MediaProcessorService {
 
 	async processFile({ fileUrl } : { fileUrl: string }) {
 		const res = await fetch(fileUrl);
-		const fileType = MPHelpers.getFileType(res.headers.get('content-type'));
+
+		const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
+
+		const fileType = MPHelpers.getFileType(contentType);
+
+		const fileExtension = MPHelpers.getFileExtension(contentType)
 
 		const dirPath = MPHelpers.createUniqueDir(__dirname);
 
-		const { filePath } = await MPHelpers.createFile(res, dirPath);
+		const { filePath, fileName } = await MPHelpers.createFile(res, dirPath);
+
 		const metadata = await MPHelpers.getFileMetadata(filePath);
+
+		const metadataForPublishing = {
+			general: {
+				name: fileName,
+				type_readable: fileType,
+				extension: fileExtension,
+				size_bytes: contentSizeBytes,
+			},
+			metadata: metadata.streams,
+		};
 
 		await this.amqpConnection.managedChannel.assertQueue('media:aggregate');
 		await this.amqpConnection.managedChannel.bindQueue('media:aggregate', 'exchange1', 'media:aggregate');
-		this.amqpConnection.publish('exchange1', 'media:aggregate', metadata);
+		this.amqpConnection.publish('exchange1', 'media:aggregate', metadataForPublishing);
 
 		switch (fileType) {
 			case FileType.IMAGE:
