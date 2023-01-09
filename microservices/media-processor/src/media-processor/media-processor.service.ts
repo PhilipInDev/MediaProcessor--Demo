@@ -1,23 +1,35 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { rmSync } from 'fs';
 import { ErrorMessage } from './error-message.enum';
 import { FileType } from './file-types.enum';
 import { supportedMediaTypesConfig } from './supported-media-types.config';
 import { MPHelpers } from './media-processor.helpers';
 import { MAX_FILE_SIZE_MB } from '../../config';
+import { OCRService } from '../ocr';
+import { MediaProcessorPayload } from './media-processor.type';
 
 @Injectable()
 class MediaProcessorService {
 	constructor(
+		private readonly ocrService: OCRService,
+
 		private readonly amqpConnection: AmqpConnection
 	) {}
 
 	private MAX_FILE_SIZE_MB = Number(MAX_FILE_SIZE_MB);
 
-	public async scanContentForExceptions(fileUrl: string) {
+	public async scanContentForExceptions({ fileUrl, langForOCR } : { fileUrl: string, langForOCR?: string }) {
 		const { headers: metaHeaders } = await fetch(fileUrl, { method: 'HEAD' });
 		const { contentType, contentSizeMb } = MPHelpers.getFileMetadataByHttpHeaders(metaHeaders);
+
+		if (langForOCR && !this.ocrService.supportedLanguages.includes(langForOCR)) {
+			throw new RpcException({
+				message: `Language «${langForOCR}» is not supported. Supported languages for OCR: ${this.ocrService.supportedLanguages.join(', ')}`,
+				statusCode: HttpStatus.BAD_REQUEST,
+			});
+		}
 
 		if (!supportedMediaTypesConfig.includes(contentType)) {
 			throw new RpcException({
@@ -42,11 +54,19 @@ class MediaProcessorService {
 		console.log('process audio')
 	}
 
-	private processImage(filePath: string) {
-		console.log('process image', filePath);
+	private async processImage(filePath: string, lang?: string) {
+		try {
+			return this.ocrService.recognizeTextFromImage(filePath, lang);
+		} catch (e) {
+			await MPHelpers.publishIntoQueue(
+				this.amqpConnection,
+				e,
+				{ queueName: 'media:process:error', exchange: 'exchange1', routingKey: 'media:process:error' }
+			)
+		}
 	}
 
-	async processFile({ fileUrl } : { fileUrl: string }) {
+	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
 		const res = await fetch(fileUrl);
 
 		const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
@@ -61,23 +81,14 @@ class MediaProcessorService {
 
 		const metadata = await MPHelpers.getFileMetadata(filePath);
 
-		const metadataForPublishing = {
-			general: {
-				name: fileName,
-				type_readable: fileType,
-				extension: fileExtension,
-				size_bytes: contentSizeBytes,
-			},
-			metadata: metadata.streams,
-		};
+		const fileHash = await MPHelpers.getFileHash(filePath);
 
-		await this.amqpConnection.managedChannel.assertQueue('media:aggregate');
-		await this.amqpConnection.managedChannel.bindQueue('media:aggregate', 'exchange1', 'media:aggregate');
-		this.amqpConnection.publish('exchange1', 'media:aggregate', metadataForPublishing);
+		let ocrResult: string | null = null;
+		let audioRecognitionResult: string | null = null;
 
 		switch (fileType) {
 			case FileType.IMAGE:
-				this.processImage(filePath);
+				ocrResult = await this.processImage(filePath, langForOCR);
 				break;
 			case FileType.VIDEO:
 				this.processVideo(filePath);
@@ -85,6 +96,28 @@ class MediaProcessorService {
 			case FileType.AUDIO:
 				this.processAudio(filePath);
 		}
+
+		const dataForAggregation = {
+			operationKey,
+			general: {
+				name: fileName,
+				typeReadable: fileType,
+				extension: fileExtension,
+				sizeBytes: contentSizeBytes,
+				hash: fileHash,
+			},
+			metadata: metadata.streams,
+			ocrResult,
+			audioRecognitionResult,
+		};
+
+		rmSync(filePath);
+
+		await MPHelpers.publishIntoQueue(
+			this.amqpConnection,
+			dataForAggregation,
+			{ queueName: 'media:aggregate', exchange: 'exchange1', routingKey: 'media:aggregate' }
+		)
 	}
 }
 

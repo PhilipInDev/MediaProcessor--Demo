@@ -13,7 +13,7 @@ import {
 } from '@golevelup/nestjs-rabbitmq';
 import { FormatResponseInterceptor } from '../../interceptors';
 import { ProcessMediaDto } from './media.dto';
-import { AppRoutes, FileMetadata } from '../../common';
+import { AppRoutes, FileInfo } from '../../common';
 import { ExceptionFilter } from '../../classes';
 import { MediaService } from './media.service';
 
@@ -28,13 +28,13 @@ class MediaController {
 	@HttpCode(202)
 	@UseFilters(new ExceptionFilter())
 	async processFile(@Body() data: ProcessMediaDto) {
-		const result = await this.mediaService.processFile(data);
+		const res = await this.mediaService.processFile(data);
 
-		if (result?.error) {
-			throw new HttpException(result.error, result.statusCode);
+		if (res?.error) {
+			throw new HttpException(res.error, res.statusCode);
 		}
 
-		return result;
+		return res;
 	}
 
 	@Get('aggregated/stats')
@@ -48,8 +48,8 @@ class MediaController {
 		queue: 'media:aggregate',
 		routingKey: 'media:aggregate',
 	})
-	async aggregateFileMetadata(data: FileMetadata) {
-		await this.mediaService.aggregateFileMetadata(data);
+	async aggregateFileInfo(data: FileInfo) {
+		await this.mediaService.aggregateFileInfo(data);
 	}
 }
 

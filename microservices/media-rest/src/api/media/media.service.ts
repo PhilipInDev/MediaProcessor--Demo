@@ -1,7 +1,8 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { FileMetadata } from '../../common';
+import { randomUUID } from 'crypto'
+import { FileInfo } from '../../common';
 import { FileGeneralModel, FileMetadataModel } from '../../database';
 
 @Injectable()
@@ -17,23 +18,36 @@ class MediaService {
 		private amqpConnection: AmqpConnection
 	) {}
 
-	async processFile(data): Promise<{ error?: string | null, statusCode: HttpStatus }> {
+	async processFile(data): Promise<{
+		error?: string | null;
+		message?: string;
+		statusCode: HttpStatus;
+	}> {
 		await this.amqpConnection.managedChannel.assertQueue('media:process');
 		await this.amqpConnection.managedChannel.bindQueue('media:process', 'exchange1', 'media:process');
 
 		return this.amqpConnection.request({
 			exchange: 'exchange1',
 			routingKey: 'media:process',
-			payload: data,
+			payload: {
+				operationKey: randomUUID(),
+				file: data,
+			},
 		});
 	}
 
-	async aggregateFileMetadata({ general, metadata } : FileMetadata) {
+	async aggregateFileInfo({
+		operationKey,
+		general,
+		metadata,
+		ocrResult
+	} : FileInfo) {
 		const fileGeneral = await this.fileGeneralModel.create({
 			name: general.name,
-			type_readable: general.type_readable,
+			type_readable: general.typeReadable,
 			extension: general.extension,
-			size_bytes: general.size_bytes,
+			size_bytes: general.sizeBytes,
+			hash: general.hash,
 		})
 
 		const metadataItems = metadata.map((meta) => ({
@@ -51,6 +65,7 @@ class MediaService {
 		}));
 
 		console.log('aggregate-service:data', fileGeneral.id, metadataItems)
+		console.log('ocr', ocrResult, operationKey)
 
 		await this.fileMetadataModel.bulkCreate(metadataItems);
 	}

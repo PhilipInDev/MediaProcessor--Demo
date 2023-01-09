@@ -15,6 +15,9 @@ class FileGeneralModel extends Model<FileGeneralModel> {
 	@Column
 	type_readable: string;
 
+	@Column
+	hash: string;
+
 }
 
 export { FileGeneralModel };

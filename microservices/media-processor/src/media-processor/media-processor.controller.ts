@@ -4,6 +4,7 @@ import {
 	RabbitRPC,
 } from '@golevelup/nestjs-rabbitmq';
 import { MediaProcessorService } from './media-processor.service';
+import { MediaProcessorPayload } from './media-processor.type';
 
 @Controller()
 class MediaProcessorController {
@@ -17,9 +18,9 @@ class MediaProcessorController {
 		queue: 'media:process',
 		errorBehavior: MessageHandlerErrorBehavior.ACK,
 	})
-	async processFile(data: { fileUrl: string }) {
+	async processFile(data: MediaProcessorPayload) {
 		try {
-			await this.mediaProcessorService.scanContentForExceptions(data.fileUrl);
+			await this.mediaProcessorService.scanContentForExceptions(data.file);
 		} catch (e) {
 			return {
 				error: e?.message,

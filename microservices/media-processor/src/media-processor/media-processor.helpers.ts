@@ -3,10 +3,22 @@ const ffprobe = require('ffprobe');
 import { FFProbeResult } from 'ffprobe';
 import { join, resolve } from 'path';
 import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { WritableStream } from 'stream/web';
 import { FileType } from './file-types.enum';
+import { fromFile } from 'hasha';
 
 class MPHelpers {
+
+	static async publishIntoQueue (
+		amqpConnection: AmqpConnection,
+		data: any,
+		settings: { queueName: string; exchange: string; routingKey: string }
+	) {
+		await amqpConnection.managedChannel.assertQueue(settings.queueName);
+		await amqpConnection.managedChannel.bindQueue(settings.queueName, settings.exchange, settings.routingKey);
+		amqpConnection.publish(settings.exchange, settings.routingKey, data);
+	}
 
 	static getFileType(contentType: string) {
 		if (contentType.includes(FileType.VIDEO)) return FileType.VIDEO;
@@ -42,6 +54,10 @@ class MPHelpers {
 
 	static async getFileMetadata(filePath: string): Promise<FFProbeResult> {
 		return ffprobe(filePath, { path: ffprobePath });
+	}
+
+	static async getFileHash(filePath: string) {
+		return fromFile(filePath, { algorithm: 'sha256' });
 	}
 
 	static getFileMetadataByHttpHeaders(headers: Headers) {
