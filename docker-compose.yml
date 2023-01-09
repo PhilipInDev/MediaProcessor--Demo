@@ -81,6 +81,32 @@ services:
         fluentd-async: "true"
         fluentd-address: 192.168.29.38:24224
         tag: media-processor
+  client-app:
+    build:
+      context: ./microservices/client-app
+      dockerfile: Dockerfile.dev
+    hostname: client-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./microservices/client-app/.env
+    networks:
+      - backend
+    depends_on:
+      - rabbitmq
+      - database
+    links:
+      - rabbitmq
+      - database
+    volumes:
+      - ./microservices/client-app:/usr/src/app
+      - ./microservices/client-app/node_modules:/usr/src/app/node_modules
+    logging:
+      driver: fluentd
+      options:
+        fluentd-async: "true"
+        fluentd-address: 192.168.29.38:24224
+        tag: client-app
   database:
     image: postgres:latest
     restart: on-failure
