@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import { rmSync } from 'fs';
 import { ErrorMessage } from './error-message.enum';
 import { FileType } from './file-types.enum';
 import { supportedMediaTypesConfig } from './supported-media-types.config';
@@ -109,6 +110,8 @@ class MediaProcessorService {
 			ocrResult,
 			audioRecognitionResult,
 		};
+
+		rmSync(filePath);
 
 		await MPHelpers.publishIntoQueue(
 			this.amqpConnection,
