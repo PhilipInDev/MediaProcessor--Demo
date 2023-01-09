@@ -77,14 +77,18 @@ type Metadata = {
 	};
 }
 
-type FileMetadata = {
+type FileInfo = {
+	operationKey: string;
 	general: {
 		name: string | null;
-		type_readable: string;
+		typeReadable: string;
 		extension: string;
-		size_bytes: number;
+		sizeBytes: number;
+		hash: string;
 	}
 	metadata: Metadata[];
+	ocrResult: string | null;
+	audioRecognitionResult: string | null;
 }
 
-export { FileMetadata };
+export { FileInfo };
