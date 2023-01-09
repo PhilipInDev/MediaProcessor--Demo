@@ -8,6 +8,7 @@ import {
 	RABBIT_MQ_USER,
 	RABBIT_MQ_PORT,
 } from '../../config';
+import { OCRService } from '../ocr';
 
 @Module({
 	imports: [
@@ -27,6 +28,7 @@ import {
 	providers: [
 		MediaProcessorService,
 		MediaProcessorController,
+		OCRService,
 	],
 	exports: [RabbitMQModule],
 })
