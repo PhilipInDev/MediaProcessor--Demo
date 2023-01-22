@@ -1,5 +1,4 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
+import { Injectable } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { rmSync } from 'fs';
 import { ErrorMessage } from './error-message.enum';
@@ -9,6 +8,7 @@ import { MPHelpers } from './media-processor.helpers';
 import { MAX_FILE_SIZE_MB } from '../../config';
 import { OCRService } from '../ocr';
 import { MediaProcessorPayload } from './media-processor.type';
+import { Exception } from '../classes';
 
 @Injectable()
 class MediaProcessorService {
@@ -25,23 +25,20 @@ class MediaProcessorService {
 		const { contentType, contentSizeMb } = MPHelpers.getFileMetadataByHttpHeaders(metaHeaders);
 
 		if (langForOCR && !this.ocrService.supportedLanguages.includes(langForOCR)) {
-			throw new RpcException({
+			throw new Exception({
 				message: `Language «${langForOCR}» is not supported. Supported languages for OCR: ${this.ocrService.supportedLanguages.join(', ')}`,
-				statusCode: HttpStatus.BAD_REQUEST,
 			});
 		}
 
 		if (!supportedMediaTypesConfig.includes(contentType)) {
-			throw new RpcException({
+			throw new Exception({
 				message: `${ErrorMessage.CONTENT_TYPE_IS_NOT_SUPPORTED}. File type is: ${contentType}. Supported types: ${supportedMediaTypesConfig.join(', ')}.`,
-				statusCode: HttpStatus.BAD_REQUEST,
 			});
 		}
 
 		if (this.MAX_FILE_SIZE_MB < contentSizeMb) {
-			throw new RpcException({
+			throw new Exception({
 				message: `${ErrorMessage.CONTENT_SIZE_IS_TOO_LARGE}. Max content size is ${this.MAX_FILE_SIZE_MB}MB`,
-				statusCode: HttpStatus.BAD_REQUEST,
 			});
 		}
 	}
@@ -66,23 +63,15 @@ class MediaProcessorService {
 		}
 	}
 
-	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
-		const res = await fetch(fileUrl);
-
-		const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
-
-		const fileType = MPHelpers.getFileType(contentType);
-
-		const fileExtension = MPHelpers.getFileExtension(contentType)
-
-		const dirPath = MPHelpers.createUniqueDir(__dirname);
-
-		const { filePath, fileName } = await MPHelpers.createFile(res, dirPath);
-
-		const metadata = await MPHelpers.getFileMetadata(filePath);
-
-		const fileHash = await MPHelpers.getFileHash(filePath);
-
+	private async makeFileSpecificProcessing({
+		fileType,
+		filePath,
+		langForOCR
+ 	} : {
+		fileType: FileType;
+		filePath: string;
+		langForOCR: string
+	}) {
 		let ocrResult: string | null = null;
 		let audioRecognitionResult: string | null = null;
 
@@ -97,27 +86,80 @@ class MediaProcessorService {
 				this.processAudio(filePath);
 		}
 
-		const dataForAggregation = {
-			operationKey,
-			general: {
-				name: fileName,
-				typeReadable: fileType,
-				extension: fileExtension,
-				sizeBytes: contentSizeBytes,
-				hash: fileHash,
-			},
-			metadata: metadata.streams,
-			ocrResult,
-			audioRecognitionResult,
+		return { ocrResult, audioRecognitionResult };
+	}
+
+	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
+		try {
+			await this.scanContentForExceptions({ fileUrl, langForOCR });
+
+			const res = await fetch(fileUrl);
+
+			const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
+
+			const fileType = MPHelpers.getFileType(contentType);
+
+			const fileExtension = MPHelpers.getFileExtension(contentType)
+
+			const dirPath = MPHelpers.createUniqueDir(__dirname);
+
+			const { filePath, fileName } = await MPHelpers.createFile(res, dirPath);
+
+			const metadata = await MPHelpers.getFileMetadata(filePath);
+
+			const fileHash = await MPHelpers.getFileHash(filePath);
+
+			const {
+				ocrResult,
+				audioRecognitionResult,
+			} = await this.makeFileSpecificProcessing({
+				fileType,
+				filePath,
+				langForOCR,
+			})
+
+			const dataForAggregation = {
+				operationKey,
+				general: {
+					name: fileName,
+					typeReadable: fileType,
+					extension: fileExtension,
+					sizeBytes: contentSizeBytes,
+					hash: fileHash,
+				},
+				metadata: metadata.streams,
+				ocrResult,
+				audioRecognitionResult,
+			};
+
+			rmSync(filePath);
+
+			await MPHelpers.publishIntoQueue(
+				this.amqpConnection,
+				dataForAggregation,
+				{ queueName: 'media:aggregate', exchange: 'exchange1', routingKey: 'media:aggregate' }
+			)
+		} catch (e: unknown) {
+
+			if (e instanceof Exception) {
+				await MPHelpers.publishIntoQueue(
+					this.amqpConnection,
+					{ operationKey, error: e },
+					{
+						queueName: 'media:process:error',
+						exchange: 'exchange1',
+						routingKey: 'media:process:error'
+					}
+				)
+			}
+
+		}
+	}
+
+	getSupportedOCRLanguages() {
+		return {
+			supportedLanguages: this.ocrService.supportedLanguages,
 		};
-
-		rmSync(filePath);
-
-		await MPHelpers.publishIntoQueue(
-			this.amqpConnection,
-			dataForAggregation,
-			{ queueName: 'media:aggregate', exchange: 'exchange1', routingKey: 'media:aggregate' }
-		)
 	}
 }
 
