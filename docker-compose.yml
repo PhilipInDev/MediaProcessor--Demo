@@ -89,7 +89,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ./microservices/client-app/.env
+      - microservices/client-app/.env.local
     networks:
       - backend
     depends_on:
