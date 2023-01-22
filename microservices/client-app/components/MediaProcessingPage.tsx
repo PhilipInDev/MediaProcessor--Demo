@@ -94,19 +94,18 @@ const MediaProcessingPage = () => {
 							</MediaProcessingProvider>
 						)
 					})}
-					<div className="sticky bottom-16">
+					<div className="sticky bottom-12">
 						<AppendButton onClick={appendButtonOnClick}/>
 					</div>
 
 					<div className="sticky bottom-0 mt-auto">
-
+						{submissionError && <span className="text-red-800 italic">{submissionError}</span>}
 						<button
 							type="submit"
 							className="w-full border text-center p-3 bg-white hover:shadow transition"
 						>
 							SUBMIT
 						</button>
-						{submissionError && <span className="text-red-800 italic w-full bg-white block">{submissionError}</span>}
 					</div>
 				</FormWrapper>
 			</ContainerWrapper>
