@@ -1,3 +1,25 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+
+html,body {
+    height: 100%;
+}
+
+#__next {
+    height: 100%;
+}
+
+@keyframes on-media-item-select {
+    0% {
+        outline: solid transparent 2px;
+    }
+
+    50% {
+        outline: solid #b50101 2px;
+    }
+
+    100% {
+        outline: solid transparent 2px;
+    }
+}
