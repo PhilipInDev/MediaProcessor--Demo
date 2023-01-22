@@ -15,8 +15,12 @@ async function bootstrap() {
 
   apisEntries.forEach(([route, hostPort]) => {
     app.use(
-      getRoute(route),
-      createProxyMiddleware({
+      createProxyMiddleware(getRoute(route),{
+        target: getServiceUrl(hostPort as string),
+        changeOrigin: true,
+      }),
+      createProxyMiddleware('/socket.io',{
+        ws: true,
         target: getServiceUrl(hostPort as string),
         changeOrigin: true,
       })
