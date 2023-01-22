@@ -5,14 +5,13 @@ import {
 	Controller,
 	UseFilters,
 	UseInterceptors,
-	HttpException,
 	Get,
 } from '@nestjs/common';
 import {
 	RabbitSubscribe
 } from '@golevelup/nestjs-rabbitmq';
 import { FormatResponseInterceptor } from '../../interceptors';
-import { ProcessMediaDto } from './media.dto';
+import { ProcessMediaDtoArray } from './media.dto';
 import { AppRoutes, FileInfo } from '../../common';
 import { ExceptionFilter } from '../../classes';
 import { MediaService } from './media.service';
@@ -27,20 +26,20 @@ class MediaController {
 	@Post('process')
 	@HttpCode(202)
 	@UseFilters(new ExceptionFilter())
-	async processFile(@Body() data: ProcessMediaDto) {
-		const res = await this.mediaService.processFile(data);
-
-		if (res?.error) {
-			throw new HttpException(res.error, res.statusCode);
-		}
-
-		return res;
+	async processFile(@Body() data: ProcessMediaDtoArray) {
+		return this.mediaService.processFile(data);
 	}
 
 	@Get('aggregated/stats')
 	@UseFilters(new ExceptionFilter())
 	async getAggregatedStats() {
 		return this.mediaService.getAggregatedFilesStats();
+	}
+
+	@Get('process/supported-ocr-languages')
+	@UseFilters(new ExceptionFilter())
+	async getSupportedOCRLanguages() {
+		return this.mediaService.getSupportedOCRLanguages();
 	}
 
 	@RabbitSubscribe({
@@ -50,6 +49,15 @@ class MediaController {
 	})
 	async aggregateFileInfo(data: FileInfo) {
 		await this.mediaService.aggregateFileInfo(data);
+	}
+
+	@RabbitSubscribe({
+		exchange: 'exchange1',
+		queue: 'media:process:error',
+		routingKey: 'media:process:error',
+	})
+	async handleMediaProcessingError(data: { operationKey: string; error: Error }) {
+		await this.mediaService.handleMediaProcessingError(data.error, data.operationKey);
 	}
 }
 

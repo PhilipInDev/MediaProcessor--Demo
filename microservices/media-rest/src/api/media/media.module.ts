@@ -13,7 +13,7 @@ import {
 	FileGeneralModel,
 	FileMetadataModel,
 } from '../../database';
-
+import {MediaGateway} from './media.gateway';
 @Module({
 	imports: [
 		RabbitMQModule.forRoot(RabbitMQModule, {
@@ -34,6 +34,7 @@ import {
 	providers: [
 		MediaService,
 		MediaController,
+		MediaGateway,
 	],
 	exports: [RabbitMQModule],
 })

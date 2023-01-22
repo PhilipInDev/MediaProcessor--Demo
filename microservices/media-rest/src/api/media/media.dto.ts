@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsUrl, Matches } from 'class-validator';
+import {
+	IsArray,
+	IsNotEmpty,
+	IsUrl,
+	Matches,
+	ValidateNested
+} from 'class-validator';
+import {Type} from 'class-transformer';
 
 class ProcessMediaDto {
 	@Matches(
@@ -8,6 +15,17 @@ class ProcessMediaDto {
 	@IsNotEmpty()
 	@IsUrl()
 	fileUrl: string;
+
+	id?: string;
+
+	langForOCR?: string;
 }
 
-export { ProcessMediaDto }
+class ProcessMediaDtoArray {
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => ProcessMediaDto)
+	files: ProcessMediaDto[];
+}
+
+export { ProcessMediaDto, ProcessMediaDtoArray }
