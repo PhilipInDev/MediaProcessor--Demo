@@ -12,7 +12,7 @@ import {
 } from '@golevelup/nestjs-rabbitmq';
 import { FormatResponseInterceptor } from '../../interceptors';
 import { ProcessMediaDtoArray } from './media.dto';
-import { AppRoutes, FileInfo } from '../../common';
+import { AppRoutes, FileProcessingResult } from '../../common';
 import { ExceptionFilter } from '../../classes';
 import { MediaService } from './media.service';
 
@@ -47,7 +47,7 @@ class MediaController {
 		queue: 'media:aggregate',
 		routingKey: 'media:aggregate',
 	})
-	async aggregateFileInfo(data: FileInfo) {
+	async aggregateFileInfo(data: FileProcessingResult) {
 		await this.mediaService.aggregateFileInfo(data);
 	}
 

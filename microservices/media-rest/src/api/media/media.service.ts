@@ -6,7 +6,7 @@ import { MediaGateway } from './media.gateway';
 import { MediaHelpers } from './media.helpers';
 import { ProcessMediaDtoArray } from './media.dto';
 import { WebSocketResponse } from '../../classes';
-import { FileInfo } from '../../common';
+import { FileProcessingResult } from '../../common';
 import { FileGeneralModel, FileMetadataModel } from '../../database';
 
 @Injectable()
@@ -57,8 +57,9 @@ class MediaService {
 		operationKey,
 		general,
 		metadata,
-		ocrResult
-	} : FileInfo) {
+		ocrResult,
+		performance,
+	} : FileProcessingResult) {
 		const fileGeneral = await this.fileGeneralModel.create({
 			name: general.name,
 			type_readable: general.typeReadable,
@@ -82,7 +83,7 @@ class MediaService {
 		}));
 
 		console.log('aggregate-service:data', fileGeneral.id, metadataItems)
-		console.log('ocr', ocrResult, operationKey)
+		console.log('ocr', ocrResult, operationKey, performance)
 
 		this.mediaGateway.server.emit(
 			operationKey,
@@ -90,6 +91,7 @@ class MediaService {
 				fileGeneral,
 				metadata: metadataItems,
 				ocrResult,
+				performance,
 			})
 		);
 
