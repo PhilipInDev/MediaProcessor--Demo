@@ -52,7 +52,8 @@ const MediaProcessingProvider: FC<PropsWithChildren<PropsType>> = ({
 				addProcessingResult({
 					success: true,
 					operationKey,
-					itemIdx
+					itemIdx,
+					performance: mediaProcessingResult.payload.performance,
 				});
 				setProcessingResult(mediaProcessingResult.payload);
 				setProcessing(false);

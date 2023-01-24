@@ -92,6 +92,11 @@ type ProcessingResult = {
 	metadata: Metadata[];
 	ocrResult: string | null;
 	audioRecognitionResult: string | null;
+	performance: {
+		fileSpecificProcessingMs: string;
+		metadataRetrievingMs: string;
+		uploadingFileMs: string;
+	}
 }
 
 type MediaProcessingContextType = {
