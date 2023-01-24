@@ -4,9 +4,9 @@ import { FFProbeResult } from 'ffprobe';
 import { join, resolve } from 'path';
 import { createWriteStream, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
+import {fromFile} from 'hasha';
 import { WritableStream } from 'stream/web';
-import { FileType } from './file-types.enum';
-import { fromFile } from 'hasha';
+import { FileType } from './enum';
 
 class MPHelpers {
 
@@ -112,6 +112,29 @@ class MPHelpers {
 
 	static bytesToMbs (sizeInBytes: number) {
 		return Number((sizeInBytes / (1024 * 1024)).toFixed(2));
+	}
+
+	static async getFileByURL (fileUrl: string) {
+		const res = await fetch(fileUrl);
+
+		const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
+
+		const fileType = MPHelpers.getFileType(contentType);
+
+		const fileExtension = MPHelpers.getFileExtension(contentType)
+
+		const dirPath = MPHelpers.createUniqueDir(__dirname);
+
+		const { filePath, fileName } = await MPHelpers.createFile(res, dirPath);
+
+		return {
+			fileType,
+			fileExtension,
+			filePath,
+			fileName,
+			fileSizeBytes: contentSizeBytes,
+			dirPath,
+		}
 	}
 }
 

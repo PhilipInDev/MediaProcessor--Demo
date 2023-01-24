@@ -1,14 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
-import { rmSync } from 'fs';
-import { ErrorMessage } from './error-message.enum';
-import { FileType } from './file-types.enum';
+import { rm } from 'fs/promises';
+import { existsSync } from 'fs';
+import { join } from 'path';
+import { path as ffmpegPath } from '@ffmpeg-installer/ffmpeg'
+import { ErrorMessage, FileType } from './enum';
+import { MediaProcessorPayload } from './type';
 import { supportedMediaTypesConfig } from './supported-media-types.config';
 import { MPHelpers } from './media-processor.helpers';
 import { MAX_FILE_SIZE_MB } from '../../config';
 import { OCRService } from '../ocr';
-import { MediaProcessorPayload } from './media-processor.type';
-import { Exception } from '../classes';
+import { Exception, PerformanceMeasurement } from '../classes';
+
+const extractFrames = require('ffmpeg-extract-frames');
 
 @Injectable()
 class MediaProcessorService {
@@ -43,8 +47,27 @@ class MediaProcessorService {
 		}
 	}
 
-	private processVideo(filePath: string) {
-		console.log('process video')
+	private async processVideo(filePath: string, dirPath: string, langForOCR: string) {
+		await extractFrames(
+			{
+				input: filePath,
+				output: join(dirPath, 'frame-%d.jpg'),
+				fps: 1,
+				ffmpegPath
+			}
+		)
+
+		let counter = 1;
+		const videoOcrResult = [];
+		const getFramePath = (frameNumber: number) => join(dirPath, `frame-${frameNumber}.jpg`);
+
+		while (existsSync(getFramePath(counter))) {
+			const ocrResult = await this.processImage(getFramePath(counter), langForOCR);
+			videoOcrResult.push(`------------------${counter} second------------------>\n ${ocrResult}`);
+			counter++;
+		}
+
+		return videoOcrResult.join('-------------------- END --------------------\n\n');
 	}
 
 	private processAudio(filePath: string) {
@@ -66,11 +89,13 @@ class MediaProcessorService {
 	private async makeFileSpecificProcessing({
 		fileType,
 		filePath,
-		langForOCR
+		langForOCR,
+		dirPath,
  	} : {
 		fileType: FileType;
 		filePath: string;
-		langForOCR: string
+		dirPath: string;
+		langForOCR: string;
 	}) {
 		let ocrResult: string | null = null;
 		let audioRecognitionResult: string | null = null;
@@ -80,7 +105,7 @@ class MediaProcessorService {
 				ocrResult = await this.processImage(filePath, langForOCR);
 				break;
 			case FileType.VIDEO:
-				this.processVideo(filePath);
+				ocrResult = await this.processVideo(filePath, dirPath, langForOCR);
 				break;
 			case FileType.AUDIO:
 				this.processAudio(filePath);
@@ -93,52 +118,72 @@ class MediaProcessorService {
 		try {
 			await this.scanContentForExceptions({ fileUrl, langForOCR });
 
-			const res = await fetch(fileUrl);
-
-			const { contentType, contentSizeBytes } = MPHelpers.getFileMetadataByHttpHeaders(res.headers);
-
-			const fileType = MPHelpers.getFileType(contentType);
-
-			const fileExtension = MPHelpers.getFileExtension(contentType)
-
-			const dirPath = MPHelpers.createUniqueDir(__dirname);
-
-			const { filePath, fileName } = await MPHelpers.createFile(res, dirPath);
-
-			const metadata = await MPHelpers.getFileMetadata(filePath);
-
-			const fileHash = await MPHelpers.getFileHash(filePath);
-
+			const uploadingFileStartTime = PerformanceMeasurement.getStartTime();
 			const {
-				ocrResult,
-				audioRecognitionResult,
-			} = await this.makeFileSpecificProcessing({
-				fileType,
 				filePath,
-				langForOCR,
-			})
+				fileName,
+				fileType,
+				fileExtension,
+				fileSizeBytes,
+				dirPath,
+			} = await MPHelpers.getFileByURL(fileUrl);
+			const uploadingFileElapsedTime = PerformanceMeasurement
+				.getElapsedTimeMs(process.hrtime(uploadingFileStartTime));
 
-			const dataForAggregation = {
-				operationKey,
-				general: {
-					name: fileName,
-					typeReadable: fileType,
-					extension: fileExtension,
-					sizeBytes: contentSizeBytes,
-					hash: fileHash,
-				},
-				metadata: metadata.streams,
-				ocrResult,
-				audioRecognitionResult,
-			};
+			try {
 
-			rmSync(filePath);
+				const metadataRetrievingStartTime = PerformanceMeasurement.getStartTime();
+				const metadata = await MPHelpers.getFileMetadata(filePath);
+				const metadataRetrievingElapsedTime = PerformanceMeasurement
+					.getElapsedTimeMs(process.hrtime(metadataRetrievingStartTime));
 
-			await MPHelpers.publishIntoQueue(
-				this.amqpConnection,
-				dataForAggregation,
-				{ queueName: 'media:aggregate', exchange: 'exchange1', routingKey: 'media:aggregate' }
-			)
+				const fileHash = await MPHelpers.getFileHash(filePath);
+
+				const fileSpecificProcessingStartTime = PerformanceMeasurement.getStartTime();
+				const {
+					ocrResult,
+					audioRecognitionResult,
+				} = await this.makeFileSpecificProcessing({
+					fileType,
+					filePath,
+					langForOCR,
+					dirPath,
+				})
+				const fileSpecificProcessingElapsedTime = PerformanceMeasurement
+					.getElapsedTimeMs(process.hrtime(fileSpecificProcessingStartTime));
+
+				const dataForAggregation = {
+					operationKey,
+					general: {
+						name: fileName,
+						typeReadable: fileType,
+						extension: fileExtension,
+						sizeBytes: fileSizeBytes,
+						hash: fileHash,
+					},
+					metadata: metadata.streams,
+					ocrResult,
+					audioRecognitionResult,
+					performance: {
+						fileSpecificProcessingMs: fileSpecificProcessingElapsedTime,
+						metadataRetrievingMs: metadataRetrievingElapsedTime,
+						uploadingFileMs: uploadingFileElapsedTime,
+					}
+				};
+
+				await rm(filePath);
+
+				await MPHelpers.publishIntoQueue(
+					this.amqpConnection,
+					dataForAggregation,
+					{ queueName: 'media:aggregate', exchange: 'exchange1', routingKey: 'media:aggregate' }
+				)
+
+			} catch (e) {
+				await rm(filePath);
+				throw e;
+			}
+
 		} catch (e: unknown) {
 
 			if (e instanceof Exception) {

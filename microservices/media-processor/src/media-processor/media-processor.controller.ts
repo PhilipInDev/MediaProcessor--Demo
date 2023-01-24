@@ -5,7 +5,7 @@ import {
 	RabbitSubscribe,
 } from '@golevelup/nestjs-rabbitmq';
 import { MediaProcessorService } from './media-processor.service';
-import { MediaProcessorPayload } from './media-processor.type';
+import { MediaProcessorPayload } from './type';
 
 @Controller()
 class MediaProcessorController {
