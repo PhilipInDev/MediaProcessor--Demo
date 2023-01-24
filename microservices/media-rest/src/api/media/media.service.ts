@@ -1,8 +1,12 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { randomUUID } from 'crypto'
-import { FileInfo } from '../../common';
+import { MediaGateway } from './media.gateway';
+import { MediaHelpers } from './media.helpers';
+import { ProcessMediaDtoArray } from './media.dto';
+import { WebSocketResponse } from '../../classes';
+import { FileProcessingResult } from '../../common';
 import { FileGeneralModel, FileMetadataModel } from '../../database';
 
 @Injectable()
@@ -15,33 +19,47 @@ class MediaService {
 		@InjectModel(FileGeneralModel)
 		private fileGeneralModel: typeof FileGeneralModel,
 
-		private amqpConnection: AmqpConnection
+		private amqpConnection: AmqpConnection,
+
+		private mediaGateway: MediaGateway
 	) {}
 
-	async processFile(data): Promise<{
-		error?: string | null;
-		message?: string;
-		statusCode: HttpStatus;
-	}> {
-		await this.amqpConnection.managedChannel.assertQueue('media:process');
-		await this.amqpConnection.managedChannel.bindQueue('media:process', 'exchange1', 'media:process');
+	async processFile({ files }: ProcessMediaDtoArray) {
+		const hasDuplicates = MediaHelpers.hasDuplicates(files.map(({ id, ...rest }) => rest));
 
-		return this.amqpConnection.request({
-			exchange: 'exchange1',
-			routingKey: 'media:process',
-			payload: {
-				operationKey: randomUUID(),
-				file: data,
-			},
-		});
+		if (hasDuplicates) {
+			throw new HttpException('Request shouldn\'t contain duplicates', HttpStatus.BAD_REQUEST);
+		}
+
+		const pendingOperations = files.map(async (file) => {
+			const operationKey = randomUUID();
+
+			await MediaHelpers.publishIntoQueue(
+				this.amqpConnection,
+				{
+					operationKey,
+					file,
+				},
+				{
+					exchange: 'exchange1',
+					routingKey: 'media:process',
+					queueName: 'media:process'
+				}
+			);
+
+			return { id: file.id, fileUrl: file.fileUrl, operationKey };
+		})
+
+		return Promise.all(pendingOperations);
 	}
 
 	async aggregateFileInfo({
 		operationKey,
 		general,
 		metadata,
-		ocrResult
-	} : FileInfo) {
+		ocrResult,
+		performance,
+	} : FileProcessingResult) {
 		const fileGeneral = await this.fileGeneralModel.create({
 			name: general.name,
 			type_readable: general.typeReadable,
@@ -65,7 +83,17 @@ class MediaService {
 		}));
 
 		console.log('aggregate-service:data', fileGeneral.id, metadataItems)
-		console.log('ocr', ocrResult, operationKey)
+		console.log('ocr', ocrResult, operationKey, performance)
+
+		this.mediaGateway.server.emit(
+			operationKey,
+			new WebSocketResponse({
+				fileGeneral,
+				metadata: metadataItems,
+				ocrResult,
+				performance,
+			})
+		);
 
 		await this.fileMetadataModel.bulkCreate(metadataItems);
 	}
@@ -93,6 +121,28 @@ class MediaService {
 			totalSizeBytes,
 			totalCountForPast30days,
 		};
+	}
+
+	async getSupportedOCRLanguages() {
+		return MediaHelpers.requestUsingQueue(
+			this.amqpConnection,
+			null,
+			{
+				exchange: 'exchange1',
+				routingKey: 'media:process:supported-ocr-languages',
+				queueName: 'media:process:supported-ocr-languages'
+			}
+		)
+	}
+
+	async handleMediaProcessingError(error: Error, operationKey: string) {
+		this.mediaGateway.server.emit(
+			operationKey,
+			new WebSocketResponse(
+				null,
+				{ message: error.message, details: error }
+			)
+		)
 	}
 }
 

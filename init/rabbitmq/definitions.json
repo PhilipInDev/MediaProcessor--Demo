@@ -26,6 +26,15 @@
       "arguments": {
         "x-queue-type": "classic"
       }
+    },
+    {
+      "name": "media:process:supported-ocr-languages",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
     }
   ],
   "exchanges": [
@@ -62,6 +71,14 @@
       "destination": "media:aggregate",
       "destination_type": "queue",
       "routing_key": "media:aggregate",
+      "arguments": {}
+    },
+    {
+      "source": "exchange1",
+      "vhost": "/",
+      "destination": "media:process:supported-ocr-languages",
+      "destination_type": "queue",
+      "routing_key": "media:process:supported-ocr-languages",
       "arguments": {}
     }
   ]

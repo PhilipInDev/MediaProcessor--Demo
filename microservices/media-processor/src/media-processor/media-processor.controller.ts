@@ -1,10 +1,11 @@
-import { Controller, HttpStatus } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import {
 	MessageHandlerErrorBehavior,
 	RabbitRPC,
+	RabbitSubscribe,
 } from '@golevelup/nestjs-rabbitmq';
 import { MediaProcessorService } from './media-processor.service';
-import { MediaProcessorPayload } from './media-processor.type';
+import { MediaProcessorPayload } from './type';
 
 @Controller()
 class MediaProcessorController {
@@ -12,25 +13,23 @@ class MediaProcessorController {
 		private readonly mediaProcessorService: MediaProcessorService,
 	) {}
 
-	@RabbitRPC({
+	@RabbitSubscribe({
 		exchange: 'exchange1',
 		routingKey: 'media:process',
 		queue: 'media:process',
 		errorBehavior: MessageHandlerErrorBehavior.ACK,
 	})
 	async processFile(data: MediaProcessorPayload) {
-		try {
-			await this.mediaProcessorService.scanContentForExceptions(data.file);
-		} catch (e) {
-			return {
-				error: e?.message,
-				statusCode: HttpStatus.BAD_REQUEST,
-			}
-		}
+		await this.mediaProcessorService.processFile(data);
+	}
 
-		this.mediaProcessorService.processFile(data);
-
-		return null;
+	@RabbitRPC({
+		exchange: 'exchange1',
+		routingKey: 'media:process:supported-ocr-languages',
+		queue: 'media:process:supported-ocr-languages',
+	})
+	async getSupportedOCRLanguages() {
+		return this.mediaProcessorService.getSupportedOCRLanguages();
 	}
 }
 

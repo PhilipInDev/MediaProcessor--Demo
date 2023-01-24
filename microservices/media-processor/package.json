@@ -24,6 +24,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@ffprobe-installer/ffprobe": "^1.4.1",
     "@golevelup/nestjs-rabbitmq": "^3.4.0",
     "@nestjs/common": "^9.0.0",
@@ -34,6 +35,7 @@
     "amqp-connection-manager": "^4.1.9",
     "amqplib": "^0.10.3",
     "dotenv": "^16.0.3",
+    "ffmpeg-extract-frames": "^2.0.2",
     "ffprobe": "^1.1.2",
     "hasha": "^5.2.2",
     "reflect-metadata": "^0.1.13",

@@ -77,18 +77,4 @@ type Metadata = {
 	};
 }
 
-type FileInfo = {
-	operationKey: string;
-	general: {
-		name: string | null;
-		typeReadable: string;
-		extension: string;
-		sizeBytes: number;
-		hash: string;
-	}
-	metadata: Metadata[];
-	ocrResult: string | null;
-	audioRecognitionResult: string | null;
-}
-
-export { FileInfo };
+export { Metadata };
