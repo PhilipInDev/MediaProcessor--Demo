@@ -14,7 +14,7 @@ const RecognitionResult: FC<PropsType> = ({ recognitionType, text, loading = fal
 			<h3 className="font-bold text-xl">{recognitionType}</h3>
 			{loading
 				? <Spinner />
-				: <p className="italic">{text || '-'}</p>
+				: <p className="italic whitespace-pre-wrap">{text || '-'}</p>
 			}
 		</ItemWrapper>
 	)
