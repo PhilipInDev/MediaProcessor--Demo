@@ -11,6 +11,7 @@ import { MPHelpers } from './media-processor.helpers';
 import { MAX_FILE_SIZE_MB } from '../../config';
 import { OCRService } from '../ocr';
 import { Exception, PerformanceMeasurement } from '../classes';
+import { SpeechRecognitionService } from '../speech-recognition';
 
 const extractFrames = require('ffmpeg-extract-frames');
 
@@ -18,6 +19,8 @@ const extractFrames = require('ffmpeg-extract-frames');
 class MediaProcessorService {
 	constructor(
 		private readonly ocrService: OCRService,
+
+		private readonly speechRecognitionService: SpeechRecognitionService,
 
 		private readonly amqpConnection: AmqpConnection
 	) {}
@@ -70,8 +73,9 @@ class MediaProcessorService {
 		return videoOcrResult.join('-------------------- END --------------------\n\n');
 	}
 
-	private processAudio(filePath: string) {
+	private async processAudio(filePath: string) {
 		console.log('process audio')
+		return this.speechRecognitionService.recognize(filePath);
 	}
 
 	private async processImage(filePath: string, lang?: string) {
@@ -108,13 +112,15 @@ class MediaProcessorService {
 				ocrResult = await this.processVideo(filePath, dirPath, langForOCR);
 				break;
 			case FileType.AUDIO:
-				this.processAudio(filePath);
+				audioRecognitionResult = await this.processAudio(filePath);
 		}
 
 		return { ocrResult, audioRecognitionResult };
 	}
 
 	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
+		const cleanup = async (dirPath: string) => rm(dirPath, { recursive: true, force: true });
+
 		try {
 			await this.scanContentForExceptions({ fileUrl, langForOCR });
 
@@ -171,7 +177,7 @@ class MediaProcessorService {
 					}
 				};
 
-				await rm(filePath);
+				await cleanup(dirPath);
 
 				await MPHelpers.publishIntoQueue(
 					this.amqpConnection,
@@ -180,7 +186,7 @@ class MediaProcessorService {
 				)
 
 			} catch (e) {
-				await rm(filePath);
+				await cleanup(dirPath);
 				throw e;
 			}
 

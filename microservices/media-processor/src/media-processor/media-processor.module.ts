@@ -9,6 +9,7 @@ import {
 	RABBIT_MQ_PORT,
 } from '../../config';
 import { OCRService } from '../ocr';
+import { SpeechRecognitionService } from '../speech-recognition';
 
 @Module({
 	imports: [
@@ -28,6 +29,7 @@ import { OCRService } from '../ocr';
 	providers: [
 		MediaProcessorService,
 		MediaProcessorController,
+		SpeechRecognitionService,
 		OCRService,
 	],
 	exports: [RabbitMQModule],
