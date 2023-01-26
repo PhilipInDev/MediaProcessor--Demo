@@ -10,13 +10,27 @@ html,body {
     height: 100%;
 }
 
-@keyframes on-media-item-select {
+@keyframes on-media-item-select--error {
     0% {
         outline: solid transparent 2px;
     }
 
     50% {
         outline: solid #b50101 2px;
+    }
+
+    100% {
+        outline: solid transparent 2px;
+    }
+}
+
+@keyframes on-media-item-select--success {
+    0% {
+        outline: solid transparent 2px;
+    }
+
+    50% {
+        outline: solid #1d9203 2px;
     }
 
     100% {
