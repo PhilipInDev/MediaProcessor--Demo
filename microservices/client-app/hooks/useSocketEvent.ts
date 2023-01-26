@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { SocketEvent } from '../common'
 import { Socket } from '../services';
 
 type WebSocketResponse <P> = {
@@ -7,7 +6,7 @@ type WebSocketResponse <P> = {
 	error: { message: string; details?: unknown; timestamp: number; type?: string } | null;
 }
 
-function useSocketEvent <ExpectedMessage>(event: SocketEvent | string) {
+function useSocketEvent <ExpectedMessage>(event: string) {
 	const [isConnected, setIsConnected] = useState(Socket.connected);
 	const [lastMessage, setLastMessage] = useState<WebSocketResponse<ExpectedMessage> | null>(null);
 	const [error, setError] = useState<string | null>(null);
