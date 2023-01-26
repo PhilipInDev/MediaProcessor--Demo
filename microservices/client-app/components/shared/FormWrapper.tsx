@@ -1,7 +1,9 @@
 import { FC, FormHTMLAttributes, PropsWithChildren } from 'react';
-import { FieldValues, UseFormReturn, FormProvider } from 'react-hook-form';
+import { UseFormReturn, FormProvider } from 'react-hook-form';
 
-const FormWrapper: FC<PropsWithChildren<FormHTMLAttributes<HTMLFormElement> & { context: UseFormReturn<FieldValues, any> }>> = ({ children, context, ...rest }) => {
+type PropsType = PropsWithChildren<FormHTMLAttributes<HTMLFormElement> & { context: UseFormReturn<any> }>;
+
+const FormWrapper: FC<PropsType> = ({ children, context, ...rest }) => {
 	return (
 		<FormProvider {...context}>
 			<form {...rest}>
