@@ -25,9 +25,11 @@ class MediaProcessorService {
 		private readonly amqpConnection: AmqpConnection
 	) {}
 
+	/*---------------------------------------- MEDIA PROCESSING START -----------------------------------------*/
+
 	private MAX_FILE_SIZE_MB = Number(MAX_FILE_SIZE_MB);
 
-	public async scanContentForExceptions({ fileUrl, langForOCR } : { fileUrl: string, langForOCR?: string }) {
+	private async scanContentForExceptions({ fileUrl, langForOCR } : { fileUrl: string, langForOCR?: string }) {
 		const { headers: metaHeaders } = await fetch(fileUrl, { method: 'HEAD' });
 		const { contentType, contentSizeMb } = MPHelpers.getFileMetadataByHttpHeaders(metaHeaders);
 
@@ -74,7 +76,6 @@ class MediaProcessorService {
 	}
 
 	private async processAudio(filePath: string) {
-		console.log('process audio')
 		return this.speechRecognitionService.recognize(filePath);
 	}
 
@@ -118,9 +119,16 @@ class MediaProcessorService {
 		return { ocrResult, audioRecognitionResult };
 	}
 
-	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
-		const cleanup = async (dirPath: string) => rm(dirPath, { recursive: true, force: true });
+	private async cleanup(dirPath: string) {
+		return rm(dirPath, { recursive: true, force: true });
+	}
 
+
+	/**
+	* Media processing entrypoint.
+ 	*
+	* */
+	public async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
 		try {
 			await this.scanContentForExceptions({ fileUrl, langForOCR });
 
@@ -177,7 +185,7 @@ class MediaProcessorService {
 					}
 				};
 
-				await cleanup(dirPath);
+				await this.cleanup(dirPath);
 
 				await MPHelpers.publishIntoQueue(
 					this.amqpConnection,
@@ -186,7 +194,7 @@ class MediaProcessorService {
 				)
 
 			} catch (e) {
-				await cleanup(dirPath);
+				await this.cleanup(dirPath);
 				throw e;
 			}
 
@@ -206,6 +214,8 @@ class MediaProcessorService {
 
 		}
 	}
+
+	/*---------------------------------------- MEDIA PROCESSING END -----------------------------------------*/
 
 	getSupportedOCRLanguages() {
 		return {
