@@ -38,7 +38,7 @@ const MediaProcessingStateUnit: FC<MediaProcessingStateUnitPropsType> = ({
 				onClick={onClick}
 				className={cn( "w-20 flex-shrink-0 flex justify-center items-center transition-all border-l-4 border-l-white",{
 					"bg-red-500 cursor-pointer text-red-300 hover:border-l-red-200": !success,
-					"bg-green-500": success,
+					"bg-green-500 cursor-pointer hover:border-l-green-200": success,
 				})}
 				title={title}
 			>
@@ -86,19 +86,19 @@ const MediaProcessingState = () => {
 			return item;
 		}) as (ProcessingResult | null)[]
 
-	const unitOnClick = (operationKey: string) => {
+	const unitOnClick = (operationKey: string, success: boolean) => {
 		const el = document.querySelector<HTMLDivElement>(`[data-operation-key="${operationKey}"]`);
 
 		if (el) {
 			el.style.animation = '';
 			el.offsetWidth;
-			el.style.animation = 'on-media-item-select 1s';
+			el.style.animation = success ? 'on-media-item-select--success 1s' : 'on-media-item-select--error 1s';
 			el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		}
 	}
 
 	return (
-		<div className="h-full w-20">
+		<div className="h-full w-20 flex flex-col gap-[1px]">
 			{
 				processedFilesCount && processingResultsWithCorrectOrder.map((unit, idx) => (
 					<MediaProcessingStateUnit
@@ -106,7 +106,7 @@ const MediaProcessingState = () => {
 						unit={
 							unit
 								? {
-										onClick: !unit.success ? () => unitOnClick(unit.operationKey) : undefined,
+										onClick: () => unitOnClick(unit.operationKey, unit?.success),
 										success: unit.success,
 										performance: unit.success ? unit.performance : undefined,
 										title:  !unit.success ? unit?.error : undefined,

@@ -27,6 +27,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@ffprobe-installer/ffprobe": "^1.4.1",
     "@golevelup/nestjs-rabbitmq": "^3.4.0",
+    "@google-cloud/speech": "^5.2.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/microservices": "^9.2.1",

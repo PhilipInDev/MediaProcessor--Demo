@@ -11,6 +11,7 @@ import { MPHelpers } from './media-processor.helpers';
 import { MAX_FILE_SIZE_MB } from '../../config';
 import { OCRService } from '../ocr';
 import { Exception, PerformanceMeasurement } from '../classes';
+import { SpeechRecognitionService } from '../speech-recognition';
 
 const extractFrames = require('ffmpeg-extract-frames');
 
@@ -19,12 +20,16 @@ class MediaProcessorService {
 	constructor(
 		private readonly ocrService: OCRService,
 
+		private readonly speechRecognitionService: SpeechRecognitionService,
+
 		private readonly amqpConnection: AmqpConnection
 	) {}
 
+	/*---------------------------------------- MEDIA PROCESSING START -----------------------------------------*/
+
 	private MAX_FILE_SIZE_MB = Number(MAX_FILE_SIZE_MB);
 
-	public async scanContentForExceptions({ fileUrl, langForOCR } : { fileUrl: string, langForOCR?: string }) {
+	private async scanContentForExceptions({ fileUrl, langForOCR } : { fileUrl: string, langForOCR?: string }) {
 		const { headers: metaHeaders } = await fetch(fileUrl, { method: 'HEAD' });
 		const { contentType, contentSizeMb } = MPHelpers.getFileMetadataByHttpHeaders(metaHeaders);
 
@@ -70,8 +75,8 @@ class MediaProcessorService {
 		return videoOcrResult.join('-------------------- END --------------------\n\n');
 	}
 
-	private processAudio(filePath: string) {
-		console.log('process audio')
+	private async processAudio(filePath: string) {
+		return this.speechRecognitionService.recognize(filePath);
 	}
 
 	private async processImage(filePath: string, lang?: string) {
@@ -108,13 +113,22 @@ class MediaProcessorService {
 				ocrResult = await this.processVideo(filePath, dirPath, langForOCR);
 				break;
 			case FileType.AUDIO:
-				this.processAudio(filePath);
+				audioRecognitionResult = await this.processAudio(filePath);
 		}
 
 		return { ocrResult, audioRecognitionResult };
 	}
 
-	async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
+	private async cleanup(dirPath: string) {
+		return rm(dirPath, { recursive: true, force: true });
+	}
+
+
+	/**
+	* Media processing entrypoint.
+ 	*
+	* */
+	public async processFile({ operationKey, file: { fileUrl, langForOCR } } : MediaProcessorPayload) {
 		try {
 			await this.scanContentForExceptions({ fileUrl, langForOCR });
 
@@ -171,7 +185,7 @@ class MediaProcessorService {
 					}
 				};
 
-				await rm(filePath);
+				await this.cleanup(dirPath);
 
 				await MPHelpers.publishIntoQueue(
 					this.amqpConnection,
@@ -180,7 +194,7 @@ class MediaProcessorService {
 				)
 
 			} catch (e) {
-				await rm(filePath);
+				await this.cleanup(dirPath);
 				throw e;
 			}
 
@@ -200,6 +214,8 @@ class MediaProcessorService {
 
 		}
 	}
+
+	/*---------------------------------------- MEDIA PROCESSING END -----------------------------------------*/
 
 	getSupportedOCRLanguages() {
 		return {

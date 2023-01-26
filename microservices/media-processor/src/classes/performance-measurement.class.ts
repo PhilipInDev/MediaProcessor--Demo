@@ -4,7 +4,7 @@ class PerformanceMeasurement {
 	}
 
 	static getElapsedTimeMs (startTime: [number, number]) {
-		return (startTime[0] + (startTime[1] / 1e6)).toFixed(3);
+		return (startTime[0] * 1000 + (startTime[1] / 1e9)).toFixed(3);
 	}
 }
 
