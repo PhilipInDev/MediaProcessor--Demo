@@ -3,6 +3,7 @@ import Joi from 'joi';
 import { useState } from 'react';
 import PageWrapper from './shared/PageWrapper';
 import { FieldValues, useFieldArray, useForm } from 'react-hook-form';
+import cn from 'classnames';
 import FormWrapper from './shared/FormWrapper';
 import AppendButton from './shared/AppendButton';
 import MediaProcessingItem from './MediaProcessingItem';
@@ -14,6 +15,7 @@ import {
 import { apiURL } from '../config';
 import ContainerWrapper from './shared/ContainerWrapper';
 import MediaProcessingState from './MediaProcessingState';
+import { defaultValues } from '../form/default-values';
 
 const mediaFormSchema = Joi.object({
 	files: Joi.array().items(Joi.object({
@@ -29,14 +31,18 @@ const MediaProcessingPage = () => {
 		processingOperationKeys,
 		setProcessingOperationKeys,
 		resetProcessingResults,
+		processingInProgress,
 	} = useMediaProcessingPage();
 
 	const [submissionError, setSubmissionError] = useState<string | null>(null);
 
-	const form = useForm({ resolver: joiResolver(mediaFormSchema) });
+	const form = useForm({
+		resolver: joiResolver(mediaFormSchema),
+		defaultValues,
+	});
 	const { fields, append, remove } = useFieldArray({ control: form.control, name: 'files' });
 
-	const appendButtonOnClick = () => append({ fileUrl: null, langForOCR: '' }, { shouldFocus: true,  });
+	const appendButtonOnClick = () => append({ fileUrl: '', langForOCR: '' }, { shouldFocus: true,  });
 
 	const getOperationKeyById = (id: string) => {
 		if (processingOperationKeys) {
@@ -94,15 +100,18 @@ const MediaProcessingPage = () => {
 							</MediaProcessingProvider>
 						)
 					})}
-					<div className="sticky bottom-12">
-						<AppendButton onClick={appendButtonOnClick}/>
+					<div className="sticky z-50 bottom-12">
+						<AppendButton onClick={appendButtonOnClick} />
 					</div>
 
 					<div className="sticky bottom-0 mt-auto">
 						{submissionError && <span className="text-red-800 italic">{submissionError}</span>}
 						<button
+							disabled={processingInProgress}
 							type="submit"
-							className="w-full border text-center p-3 bg-white hover:shadow transition"
+							className={cn("w-full border text-center p-3 bg-white hover:shadow transition", {
+								"pointer-events-none cursor-not-allowed": processingInProgress
+							})}
 						>
 							SUBMIT
 						</button>
