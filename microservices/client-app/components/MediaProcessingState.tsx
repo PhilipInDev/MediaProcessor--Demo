@@ -1,8 +1,9 @@
-import { FC } from 'react';
+import { FC, useRef } from 'react';
 import { IoClose } from 'react-icons/io5';
 import cn from 'classnames';
 import { motion } from 'framer-motion';
 import { useMediaProcessingPage, ProcessingResult } from '../context';
+import { formatBytes } from '../helpers';
 
 type MediaProcessingStateUnitPropsType = {
 	unit: {
@@ -73,6 +74,8 @@ const MediaProcessingState = () => {
 		processedFilesCount,
 	} = useMediaProcessingPage();
 
+	const totalSizeRef = useRef<HTMLDivElement>(null)
+
 	const processingResultsWithCorrectOrder = Array
 		.apply(null, Array(processedFilesCount))
 		.map((item, idx) => {
@@ -97,26 +100,55 @@ const MediaProcessingState = () => {
 		}
 	}
 
+	const getTotalFilesSizeBytes = (processingResults: ProcessingResult[]) => {
+		return processingResults.reduce((prev, currentValue ) => {
+			if (currentValue.success) {
+				return prev + Number(currentValue.fileSizeBytes)
+			}
+
+			return prev;
+		}, 0)
+	}
+
 	return (
-		<div className="h-full w-20 flex flex-col gap-[1px]">
-			{
-				processedFilesCount && processingResultsWithCorrectOrder.map((unit, idx) => (
-					<MediaProcessingStateUnit
-						key={unit?.operationKey || `mpsu-${idx}`}
-						unit={
-							unit
-								? {
+		<div className="flex-grow-0 flex-shrink flex gap-2 w-20">
+			<button
+				type="button"
+				onClick={
+					() => totalSizeRef.current && totalSizeRef.current.scrollIntoView({ block: "start", behavior: "smooth" } )
+				}
+			>
+				scroll
+			</button>
+			<div className="h-full flex flex-col gap-[1px] flex-grow-1">
+				{
+					processedFilesCount && processingResultsWithCorrectOrder.map((unit, idx) => (
+						<MediaProcessingStateUnit
+							key={unit?.operationKey || `mpsu-${idx}`}
+							unit={
+								unit
+									? {
 										onClick: () => unitOnClick(unit.operationKey, unit?.success),
 										success: unit.success,
 										performance: unit.success ? unit.performance : undefined,
 										title:  !unit.success ? unit?.error : undefined,
 									}
-								: null
-						}
-						height={`${window.innerHeight / processedFilesCount}px`}
-					/>
-				))
-			}
+									: null
+							}
+							height={`${window.innerHeight / processedFilesCount}px`}
+						/>
+					))
+				}
+			</div>
+
+			{!!processingResults.length
+				&& <div className="m-auto p-2" ref={totalSizeRef}>
+				<span
+					className="whitespace-nowrap block">Total processed files size</span>
+				<span className="italic text-sm">
+					{formatBytes(getTotalFilesSizeBytes(processingResults))}
+				</span>
+			</div>}
 		</div>
 	)
 }
