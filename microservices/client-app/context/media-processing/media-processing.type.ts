@@ -86,7 +86,7 @@ type ProcessingResult = {
 		name: string | null;
 		typeReadable: string;
 		extension: string;
-		sizeBytes: number;
+		size_bytes: number;
 		hash: string;
 	}
 	metadata: Metadata[];

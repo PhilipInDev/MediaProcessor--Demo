@@ -4,6 +4,7 @@ type SuccessfulProcessingResult = {
 	success: true;
 	operationKey: string;
 	itemIdx: number;
+	fileSizeBytes: number;
 	performance: {
 		fileSpecificProcessingMs: string;
 		metadataRetrievingMs: string;
@@ -30,6 +31,7 @@ type MediaProcessingPageContextType = {
 	resetProcessingResults: () => void;
 	processingOperationKeys: ProcessingOperationKeys | null;
 	setProcessingOperationKeys: Dispatch<SetStateAction<ProcessingOperationKeys | null>>;
+	processingInProgress: boolean;
 }
 
 export type { MediaProcessingPageContextType, ProcessingResult, ProcessingOperationKeys };

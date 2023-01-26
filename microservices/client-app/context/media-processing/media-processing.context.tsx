@@ -53,6 +53,7 @@ const MediaProcessingProvider: FC<PropsWithChildren<PropsType>> = ({
 					success: true,
 					operationKey,
 					itemIdx,
+					fileSizeBytes: mediaProcessingResult.payload.fileGeneral.size_bytes,
 					performance: mediaProcessingResult.payload.performance,
 				});
 				setProcessingResult(mediaProcessingResult.payload);
