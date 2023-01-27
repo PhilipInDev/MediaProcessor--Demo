@@ -58,6 +58,7 @@ const MediaProcessingPageProvider: FC<PropsWithChildren> = ({ children }) => {
 				supportedLanguages,
 				processedFilesCount,
 				setProcessedFilesCount,
+				processingInProgress: processedFilesCount ? processingResults.length !== processedFilesCount : false,
 				processingResults,
 				addProcessingResult,
 				resetProcessingResults,

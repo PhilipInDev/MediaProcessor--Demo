@@ -24,13 +24,13 @@ const Select: FC<PropsType> = ({
 			<Controller
 				control={control}
 				name={name}
-				render={({ field: { onChange } }) => (
+				render={({ field: { onChange, value } }) => (
 					<ReactSelect
 						placeholder={placeholder}
 						id={id}
 						onChange={(data) => onChange(data?.value || null)}
 						options={options}
-						defaultValue={null}
+						defaultValue={{ label: value?.toUpperCase(), value }}
 					/>
 				)}
 			/>
