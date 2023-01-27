@@ -1,5 +1,6 @@
-import { FC, useRef } from 'react';
+import { FC, useRef, useState } from 'react';
 import { IoClose } from 'react-icons/io5';
+import { MdOutlineSkipNext } from 'react-icons/md';
 import cn from 'classnames';
 import { motion } from 'framer-motion';
 import { useMediaProcessingPage, ProcessingResult } from '../context';
@@ -74,6 +75,8 @@ const MediaProcessingState = () => {
 		processedFilesCount,
 	} = useMediaProcessingPage();
 
+	const [toStatsClicked, setToStatsClicked] = useState(false)
+
 	const totalSizeRef = useRef<HTMLDivElement>(null)
 
 	const processingResultsWithCorrectOrder = Array
@@ -110,16 +113,28 @@ const MediaProcessingState = () => {
 		}, 0)
 	}
 
+	const toStatsBtnOnClick = () => {
+		if (toStatsClicked) {
+			window.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+			setToStatsClicked(false);
+		} else {
+			setToStatsClicked(true);
+			window.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+		}
+	}
+
 	return (
 		<div className="flex-grow-0 flex-shrink flex gap-2 w-20">
-			<button
-				type="button"
-				onClick={
-					() => totalSizeRef.current && totalSizeRef.current.scrollIntoView({ block: "start", behavior: "smooth" } )
-				}
-			>
-				scroll
-			</button>
+			<div className="h-full">
+
+				<button
+					type="button"
+					className="mt-auto"
+					onClick={toStatsBtnOnClick}
+				>
+					<MdOutlineSkipNext size={30} />
+				</button>
+			</div>
 			<div className="h-full flex flex-col gap-[1px] flex-grow-1">
 				{
 					processedFilesCount && processingResultsWithCorrectOrder.map((unit, idx) => (
